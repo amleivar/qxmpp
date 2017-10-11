@@ -206,9 +206,13 @@ QXmppOutgoingClient::QXmppOutgoingClient(QObject *parent)
                     this, SLOT(pingTimeout()));
     Q_ASSERT(check);
 
-    check = connect(this, SIGNAL(connected()),
-                    this, SLOT(pingStart()));
-    Q_ASSERT(check);
+    // Begin KeepAlive when the socket is connected and not when the XMPP session is started ->
+    // There is a problem: sometimes when the socket is connected, the server does not send the first stanza neither broke the connection
+    // The process can be blocked for days
+    //
+    //check = connect(this, SIGNAL(connected()),
+    //                this, SLOT(pingStart()));
+    //Q_ASSERT(check);
 
     check = connect(this, SIGNAL(disconnected()),
                     this, SLOT(pingStop()));
@@ -350,6 +354,11 @@ void QXmppOutgoingClient::handleStart()
     data.append(configuration().domain().toUtf8());
     data.append("' xmlns='jabber:client' xmlns:stream='http://etherx.jabber.org/streams' version='1.0'>");
     sendData(data);
+
+    // JCP *** Begin KeepAlive when the socket is connected and not when the xmpp session is started ->
+    // There is a problem when the socket is connected and the server does not send the first stanza neither broke the connection
+    pingStop();
+    pingStart();
 }
 
 void QXmppOutgoingClient::handleStream(const QDomElement &streamElement)
